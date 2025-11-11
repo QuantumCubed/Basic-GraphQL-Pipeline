@@ -1,0 +1,34 @@
+type PrivateUser {
+    id: ID!
+    fName: String!
+    lName: String!
+    email: String!
+    password: String!
+}
+
+type PublicUser {
+    id: ID!
+    fName: String!
+    lName: String!
+    email: String!
+    password: String!
+}
+
+input createUserInput {
+    fName: String!
+    lName: String!
+    email: String!
+    password: String!
+}
+
+type Query {
+    hello: String!
+    getUser(id: ID!): PublicUser
+}
+
+type Mutation {
+    echo(mssg: String!): String
+    createUser(usrInfo: createUserInput): Boolean!
+    updateUser(id: ID!, usrInfo: createUserInput): Boolean!
+    deleteUser(id: ID!): Boolean!
+}
