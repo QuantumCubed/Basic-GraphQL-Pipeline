@@ -1,0 +1,141 @@
+import Anthropic from "@anthropic-ai/sdk";
+
+if(!process.env.ANTHROPIC_API_KEY) {
+    console.error("UNABLE TO RESOLVE ANTHROPIC API KEY!");
+    console.error("NLP Queries Unavailable!");
+}
+
+const anthropic = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY
+});
+
+export interface UserIntent {
+    operation: 'createUser' | 'getUser' | 'updateUser' | 'deleteUser' | 'listNUsers';
+    args: Record<string, any>;
+}
+
+export const parseIntent = async (message: string) => {
+    const systemPrompt =
+    `
+    You are a GraphQL query parser. Parse this user request into a structured intent.
+
+    User request: "${message}"
+    Return ONLY valid JSON (no markdown, no explanation) in this exact format:
+    {
+        "operation": "createUser" | "getUser" | "updateUser" | "deleteUser" | "listNUsers",
+        "args": { ... }
+    }
+
+    Examples:
+    - "Add user John Doe with email john@test.com" → {"operation": "createUser", "args": {"fName": "John", "lName": "Doe", "email": "john@test.com"}}
+    - "Get user with id abc-123" → {"operation": "getUser", "args": {"id": "abc-123"}}
+    - "Update user abc-123's email to new@test.com" → {"operation": "updateUser", "args": {"id": "abc-123", "email": "new@test.com"}}
+    - "Delete user abc-123" → {"operation": "deleteUser", "args": {"id": "abc-123"}}
+    - "List all users" → {"operation": "listNUsers", "args": {}}
+    - "Show me 5 users" → {"operation": "listNUsers", "args": {"n": 3}}
+    Important rules:
+    - For createUser: extract fName, lName, email, password
+    - For getUser/updateUser/deleteUser: must have id
+    - For listNUsers: n is optional (omit if user wants all users)
+    - Return ONLY the JSON object, nothing else
+    `
+    ;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1024,
+    messages: [{ role: 'user', content: systemPrompt }],
+  });
+
+  const content = response.content[0];
+  if (content.type === 'text') {
+    let jsonText = content.text.trim();
+    jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    
+    try {
+        const parsed = JSON.parse(jsonText);
+        console.log("Parsed Intent:", parsed);
+        return parsed;
+    } catch (error) {
+        console.error("Failed To Parse Claude Response:", content.text);
+        throw new Error("Failed To Parse AI Response Into Valid JSON");
+    }
+  }
+  throw new Error("Unexpected Response Format From Claude");
+}
+
+export const buildGQLQuery = (intent: UserIntent) => {
+    switch (intent.operation) {
+    case 'createUser':
+      if (!intent.args.fName || !intent.args.lName || !intent.args.email || !intent.args.password) {
+        throw new Error('Missing required fields for createUser: fName, lName, email, password');
+      }
+      return `
+        mutation {
+          createUser(usrInfo: {
+            fName: "${intent.args.fName}",
+            lName: "${intent.args.lName}",
+            email: "${intent.args.email}",
+            password: "${intent.args.password}",
+          })
+        }
+      `;
+    
+    case 'getUser':
+      if (!intent.args.id) {
+        throw new Error('Missing required field for getUser: id');
+      }
+      return `
+        query {
+          getUser(id: "${intent.args.id}") {
+            id
+            fName
+            lName
+          }
+        }
+      `;
+    
+    case 'updateUser':
+      if (!intent.args.id) {
+        throw new Error('Missing required field for updateUser: id');
+      }
+      const updates = Object.entries(intent.args)
+        .filter(([key]) => key !== 'id')
+        .map(([key, value]) => `${key}: "${value}"`)
+        .join(', ');
+      
+      if (!updates) {
+        throw new Error('No fields to update');
+      }
+      
+      return `
+        mutation {
+          updateUser(id: "${intent.args.id}", usrInfo: {${updates}})
+        }
+      `;
+    
+    case 'deleteUser':
+      if (!intent.args.id) {
+        throw new Error('Missing required field for deleteUser: id');
+      }
+      return `
+        mutation {
+          deleteUser(id: "${intent.args.id}")
+        }
+      `;
+    
+    case 'listNUsers':
+      return `
+        query {
+          listNUsers(n: ${intent.args.n ?? -1}) {
+            id
+            fName
+            lName
+          }
+        }
+      `;
+    
+    default:
+      throw new Error(`Unknown Operation: ${(intent as any).operation}`);
+  }
+}

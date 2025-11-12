@@ -1,6 +1,6 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DeleteCommand, DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { PrivateUser, updateUserArgs, UserArgs } from "../../Types/User";
+import { DeleteCommand, DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import { PrivateUser, updateUserArgs, UserArgs } from "../../../gQL/Types/User";
 import { v4 as uuidv4 } from "uuid";
 
 const dynamoClient = new DynamoDBClient({ region: "us-east-1"} );
@@ -8,6 +8,8 @@ const dynamoClient = new DynamoDBClient({ region: "us-east-1"} );
 // using the high level abstraction layer
 
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
+
+const publicQueryExpression = "id, fName, lName";
 
 export const addUser = async (userArgs: UserArgs) => {
     try {
@@ -34,7 +36,8 @@ export const queryUser = async (uuid: string) => {
         TableName: "users",
         Key: {
             id: uuid
-        }
+        },
+        ProjectionExpression: publicQueryExpression
     };
 
     try {
@@ -97,5 +100,23 @@ export const deleteUser = async (uuid: string) => {
     } catch (error) {
         console.error("Error deleting user:", error);
         return false;
+    }
+}
+
+export const listNUsers = async (n?: number) => {
+    const params: any = {
+        TableName: "users",
+        ProjectionExpression: publicQueryExpression
+    };
+
+    if (n && n > 0) {
+        params.Limit = n;
+    }
+
+    try {
+        return ((await docClient.send(new ScanCommand(params))).Items || null);
+    } catch (error) {
+        console.error("Error Listing Items:", error);
+        return null;
     }
 }
