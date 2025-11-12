@@ -10,8 +10,6 @@ type PublicUser {
     id: ID!
     fName: String!
     lName: String!
-    email: String!
-    password: String!
 }
 
 input createUserInput {
@@ -24,6 +22,7 @@ input createUserInput {
 type Query {
     hello: String!
     getUser(id: ID!): PublicUser
+    listNUsers(n: Int): [PublicUser]
 }
 
 type Mutation {
