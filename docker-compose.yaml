@@ -59,6 +59,8 @@ services:
       - "8444:8444"  # Admin API SSL
     networks:
       - app-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       kong-migration:
         condition: service_completed_successfully
