@@ -4,13 +4,15 @@ import { readFileSync } from "fs";
 import { createHandler } from "graphql-http/lib/use/express";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import * as dynamoUserService from "./database/services/dynamo.user-service";
-import { updateUserArgs, UserArgs } from "../gQL/Types/User";
-import { nUsers, QueryArgs } from "../gQL/Types/Query";
+import { updateUserArgs, UserArgs } from "../gQL/types/User";
+import { nUsers, QueryArgs } from "../gQL/types/Query";
 import * as claudeProcessingService from "./bot/services/nlpService";
 import { graphql } from "graphql";
 interface EchoArgs {
   mssg: string;
 }
+
+// GRAPHQL RESOLVERS //
 
 const resolvers = {
   Query: {
@@ -58,6 +60,8 @@ const resolvers = {
   },
 };
 
+// INITIALIZING GRAPHQL AND EXPRESS CONFIGURATION //
+
 const typeDefs = readFileSync("../gQL/schema.gql", "utf8");
 const schema = makeExecutableSchema({ typeDefs, resolvers: resolvers });
 
@@ -74,7 +78,11 @@ const port = 3000;
 
 app.use(express.json());
 
+// DEFINING GRAPHQL ROUTE WITH GRAPHQL-EXPRESS HTTP HANDLER //
+
 app.all("/graphql", createHandler({ schema }));
+
+// DEFINING AI ENDPOINT FOR GENAI FUNCTIONALITY //
 
 app.post("/ai", async (req, res) => {
   try {
@@ -96,6 +104,7 @@ app.post("/ai", async (req, res) => {
     console.log("GraphQL Query:", gqlQuery);
 
     console.log("Executing GQL Query...");
+    // CALLING GRAPHQL RESOLVERS LOCALLY (WITHOUT CALLING ENDPOINT) //
     const result = await graphql({
       schema,
       source: gqlQuery,

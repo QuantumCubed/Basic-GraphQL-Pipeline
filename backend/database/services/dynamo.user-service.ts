@@ -1,15 +1,21 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DeleteCommand, DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
-import { PrivateUser, updateUserArgs, UserArgs } from "../../../gQL/Types/User";
+import { PrivateUser, updateUserArgs, UserArgs } from "../../../gQL/types/User";
 import { v4 as uuidv4 } from "uuid";
 
 const dynamoClient = new DynamoDBClient({ region: "us-east-1"} );
 
-// using the high level abstraction layer
+// USING HIGH LEVEL ABSTRACTION OF DYNAMODBCLIENT
 
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
 
 const publicQueryExpression = "id, fName, lName";
+
+/**
+ * Creates a new user in the dynamodb
+ * @param userArgs args to create the user
+ * @returns PublicUser || false
+ */
 
 export const addUser = async (userArgs: UserArgs) => {
     try {
@@ -31,6 +37,12 @@ export const addUser = async (userArgs: UserArgs) => {
     }
 }
 
+/**
+ * Returns the given user from their ID
+ * @param uuid unique identification for a user
+ * @returns PublicUser || null
+ */
+
 export const queryUser = async (uuid: string) => {
     const params = {
         TableName: "users",
@@ -48,6 +60,12 @@ export const queryUser = async (uuid: string) => {
     }
 }
 
+/**
+ * Updates a user's information based on provided arguments
+ * @param updateArgs the args that should be updated
+ * @returns true || false
+ */
+
 export const updateUser = async (updateArgs: updateUserArgs) => {
     try {
         const updates: string [] = [];
@@ -63,7 +81,7 @@ export const updateUser = async (updateArgs: updateUserArgs) => {
         });
 
         if (updates.length === 0) {
-            return null;
+            return false;
         }
         
         const params = {
@@ -86,6 +104,12 @@ export const updateUser = async (updateArgs: updateUserArgs) => {
     }
 }
 
+/**
+ * Deletes a user from the database
+ * @param uuid unique identification for a user
+ * @returns true || false
+ */
+
 export const deleteUser = async (uuid: string) => {
     const params = {
         TableName: "users",
@@ -102,6 +126,12 @@ export const deleteUser = async (uuid: string) => {
         return false;
     }
 }
+
+/**
+ * List n users from the database
+ * @param n the number of users to list; if n <= 0, all users will be returned
+ * @returns [PublicUser] || null
+ */
 
 export const listNUsers = async (n?: number) => {
     const params: any = {
