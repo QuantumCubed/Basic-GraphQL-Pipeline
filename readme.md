@@ -116,11 +116,12 @@ cd your-project
 
 ### 5. Configure Environment Variables
 ```bash
-# Create .env file
+# Create two .env files
 vi .env
+vi backend/.env
 ```
 
-Add these variables:
+Add these variables in the root .env:
 ```bash
 # PostgreSQL (for Kong)
 POSTGRES_USER=kong
@@ -128,7 +129,10 @@ POSTGRES_PASSWORD=your-secure-password
 
 # AWS (Region only - IAM role provides credentials automatically)
 AWS_REGION=us-east-1
+```
 
+Add this variable in the backend .env
+```bash
 # Anthropic API
 ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
 ```
