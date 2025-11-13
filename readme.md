@@ -414,7 +414,3 @@ This removes:
 - [Kong Gateway Documentation](https://docs.konghq.com/)
 - [GraphQL Documentation](https://graphql.org/learn/)
 - [Anthropic Claude API](https://docs.anthropic.com/)
-
-## License
-
-MIT
